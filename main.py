@@ -137,32 +137,26 @@ class Game():
         return tile_sprites
 
     def event_get(self):
-        """Manage user input and return coordinates of the tile he wants to move (if he doesn't want to quit).
-        NB : The call to the method displaying the game over screen should probably not be here."""
+        """Manage user input and return coordinates of the tile he wants to move (if he doesn't want to quit)."""
 
-        if not self.game_won:
-            for event in pg.event.get():
+        for event in pg.event.get():
 
-                if event.type == pg.QUIT:
+            if event.type == pg.QUIT:
+                self.running = False
+                return None
+
+            if event.type == pg.KEYDOWN:
+
+                if event.key == pg.K_ESCAPE:
                     self.running = False
                     return None
 
-                if event.type == pg.KEYDOWN:
+            if event.type == pg.MOUSEBUTTONDOWN:
 
-                    if event.key == pg.K_ESCAPE:
-                        self.running = False
-                        return None
-
-                if event.type == pg.MOUSEBUTTONDOWN:
-
-                    mouse_x, mouse_y = pg.mouse.get_pos()
-                    board_x = mouse_x // self.tile_width
-                    board_y = mouse_y // self.tile_height
-                    return (board_x, board_y)
-
-        else:
-            self.game_over()
-            return None
+                mouse_x, mouse_y = pg.mouse.get_pos()
+                board_x = mouse_x // self.tile_width
+                board_y = mouse_y // self.tile_height
+                return (board_x, board_y)
 
     def update(self):
         """Pass the move requested by the user to the Board and check if game is over."""
@@ -174,7 +168,7 @@ class Game():
             self.game_won = True
 
     def render(self):
-        """Render the tiles onto the display surface and draw a grid on top of them."""
+        """Render the tiles onto the display surface and draw a grid on top of them. If game is over, render the relevant screen."""
 
         if self.do_render:
 
@@ -186,6 +180,9 @@ class Game():
                     self.screen.blit(self.tile_sprites[tile].image, (col * self.tile_width, row * self.tile_height))
             self.draw_grid()
             pg.display.flip()
+
+        if self.game_won:
+            self.game_over()
 
     def draw_grid(self):
         """Helper function to draw a grid."""
