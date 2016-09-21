@@ -9,7 +9,7 @@ import pygame as pg
 # constants
 TILES_PER_SIDE = 4
 FPS = 30
-
+# SHUFFLE sets the minimum number of random moves when setting the board
 SHUFFLE = 40
 
 # colors
@@ -22,10 +22,8 @@ class Board():
     a blank."""
 
     def __init__(self):
-
-        ids = list(range(TILES_PER_SIDE * TILES_PER_SIDE - 1))
-        random.shuffle(ids)
-        ids.append(TILES_PER_SIDE * TILES_PER_SIDE - 1)
+        """The Board is represented by a dict which associates coordinates (tuples of x and y) as keys and numbered tiles (integers) as values.
+        On initialization, the tiles are randomly shuffled a minimum SHUFFLE times. The Board keeps track of the blank tile's coordinates to manage movements."""
 
         self.tiles = dict()
         for col in range(TILES_PER_SIDE):
@@ -33,10 +31,10 @@ class Board():
                 self.tiles[(col, row)] = row * TILES_PER_SIDE + col
 
         self.blank_xy = (TILES_PER_SIDE - 1, TILES_PER_SIDE - 1)
-        self.moves_list = []
         self.shuffle()
 
     def get_valid_moves(self):
+        """Return the list of the tiles able to move because they are next to the blank."""
 
         valid_moves = []
 
@@ -52,6 +50,7 @@ class Board():
         return valid_moves
 
     def move_tile(self, xy):
+        """Swap the positions of the tile at xy coordinates and the blank."""
 
         tile = self.tiles[xy]
         self.tiles[xy] = TILES_PER_SIDE * TILES_PER_SIDE - 1
@@ -59,6 +58,7 @@ class Board():
         self.blank_xy = xy
 
     def shuffle(self):
+        """Make at least SHUFFLE random moves then continue until the blank is at the bottom right position. At each step, check that you do not undo the previous move."""
 
         previous_blank_xy = self.blank_xy
         moves_nb = 0
@@ -68,11 +68,11 @@ class Board():
                 valid_moves.pop(valid_moves.index(previous_blank_xy))
             previous_blank_xy = self.blank_xy
             move = random.choice(valid_moves)
-            self.moves_list.append(move)
             self.move_tile(move)
             moves_nb += 1
 
     def is_game_won(self):
+        """Return True if the tiles are in their original order."""
 
         for col in range(TILES_PER_SIDE):
             for row in range(TILES_PER_SIDE):
@@ -86,6 +86,12 @@ class Game():
     """The Game object wraps most of the program's functionalities."""
 
     def __init__(self):
+        """- Initialize pygame;
+        - load the image for the puzzle, calculate the dimensions for the window then create a pygame display surface;
+        - do some more pygame initialization stuff;
+        - create a Board object;
+        - create a list of sprites for rendering the tiles;
+        - set some variables to control the program's flow."""
 
         pg.init()
         self.image = pg.image.load(os.path.join("img", "01.png"))
@@ -110,8 +116,7 @@ class Game():
         self.game_won = False
 
     def init_tile_sprites(self):
-
-        DEBUG = True
+        """Use pygame functionalities to create and return a list of sprites on which portions of the main image are blitted, plus a sprite for the blank."""
 
         tile_sprites =[]
         for i in range(TILES_PER_SIDE * TILES_PER_SIDE - 1):
@@ -132,6 +137,8 @@ class Game():
         return tile_sprites
 
     def event_get(self):
+        """Manage user input and return coordinates of the tile he wants to move (if he doesn't want to quit).
+        NB : The call to the method displaying the game over screen should probably not be here."""
 
         if not self.game_won:
             for event in pg.event.get():
@@ -158,6 +165,7 @@ class Game():
             return None
 
     def update(self):
+        """Pass the move requested by the user to the Board and check if game is over."""
 
         if self.command in self.board.get_valid_moves():
             self.board.move_tile(self.command)
@@ -166,6 +174,7 @@ class Game():
             self.game_won = True
 
     def render(self):
+        """Render the tiles onto the display surface and draw a grid on top of them."""
 
         if self.do_render:
 
@@ -179,6 +188,7 @@ class Game():
             pg.display.flip()
 
     def draw_grid(self):
+        """Helper function to draw a grid."""
 
         for x in range(self.tile_width, self.screen_width, self.tile_width):
             pg.draw.line(self.screen, GREY, (x, 0), (x, self.screen_height))
@@ -186,11 +196,14 @@ class Game():
             pg.draw.line(self.screen, GREY, (0, y), (self.screen_width, y))
 
     def exit(self):
+        """Quit pygame properly."""
 
         pg.quit()
         sys.exit()
 
     def intro(self):
+        """Splash screen displaying basic information for the user.
+        Wait for a click to start the game."""
 
         self.screen.fill(SILVER)
         self.draw_text("PygameSlidePuzzle", 48, GREY, (self.screen_width // 2, self.screen_height // 4))
@@ -208,6 +221,7 @@ class Game():
                     on_start = False
 
     def game_over(self):
+        """Basic game over screen. Wait for a mouse click to play again."""
 
         overlay = pg.Surface((self.screen_width, self.screen_height))
         overlay.fill(GREY)
@@ -231,6 +245,7 @@ class Game():
                     waiting = False
 
     def draw_text(self, text, size, color, center_pos):
+        """Helper function for selecting size and color of text to be blitted on the display surface."""
         font = pg.font.Font(None, size)
         textsurf = font.render(text, True, color)
         rect = textsurf.get_rect(center=(center_pos))
