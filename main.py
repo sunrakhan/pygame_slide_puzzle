@@ -12,14 +12,7 @@ FPS = 30
 
 SHUFFLE = 40
 
-UP = (0, -1)
-DOWN = (0, 1)
-LEFT = (-1, 0)
-RIGHT = (1, 0)
-
 # colors
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
 SILVER = (192, 192, 192)
 GREY = (128, 128, 128)
 
@@ -42,15 +35,6 @@ class Board():
         self.blank_xy = (TILES_PER_SIDE - 1, TILES_PER_SIDE - 1)
         self.moves_list = []
         self.shuffle()
-
-        DEBUG = False
-        if DEBUG:
-            for row in range(TILES_PER_SIDE):
-                for col in range(TILES_PER_SIDE):
-                    coord = (col, row)
-                    print("{}: {}".format(coord, self.tiles[coord]), end=' ')
-            print()
-            print("blank at {}".format(self.blank_xy))
 
     def get_valid_moves(self):
 
@@ -87,10 +71,6 @@ class Board():
             self.moves_list.append(move)
             self.move_tile(move)
             moves_nb += 1
-
-        DEBUG = False
-        if DEBUG:
-            print(self.moves_list)
 
     def is_game_won(self):
 
@@ -139,15 +119,9 @@ class Game():
             tile_sprite.image = pg.Surface((self.tile_width, self.tile_height))
             tile_sprite.rect = tile_sprite.image.get_rect()
             source_rect = ((i % TILES_PER_SIDE) * self.tile_width, (i // TILES_PER_SIDE) * self.tile_height, self.tile_width, self.tile_height)
-
-            if DEBUG:
-                print("Getting tile from source at {}".format(source_rect))
-
             tile_sprite.image.blit(self.image, (0, 0), source_rect)
             tile_sprites.append(tile_sprite)
 
-        if DEBUG:
-            print()
         # create the blank
         tile_sprite = pg.sprite.Sprite()
         tile_sprite.image = pg.Surface((self.tile_width, self.tile_height))
@@ -175,17 +149,8 @@ class Game():
                 if event.type == pg.MOUSEBUTTONDOWN:
 
                     mouse_x, mouse_y = pg.mouse.get_pos()
-
-                    DEBUG = False
-                    if DEBUG :
-                        print("Mouse click at {},{}".format(mouse_x, mouse_y), end=' ')
-
                     board_x = mouse_x // self.tile_width
                     board_y = mouse_y // self.tile_height
-
-                    if DEBUG:
-                        print("i.e. board ({},{})\n".format(board_x, board_y))
-
                     return (board_x, board_y)
 
         else:
@@ -193,10 +158,6 @@ class Game():
             return None
 
     def update(self):
-
-        DEBUG = False
-        if DEBUG:
-            print("Command {} is valid :".format(self.command, self.board.get_valid_moves()))
 
         if self.command in self.board.get_valid_moves():
             self.board.move_tile(self.command)
