@@ -119,6 +119,7 @@ class Game():
 
         self.running = True
         self.command = None
+        self.game_won = False
 
     def init_tile_sprites(self):
 
@@ -142,33 +143,38 @@ class Game():
 
     def event_get(self):
 
-        for event in pg.event.get():
+        if not self.game_won:
+            for event in pg.event.get():
 
-            if event.type == pg.QUIT:
-                self.running = False
-                return None
-
-            if event.type == pg.KEYDOWN:
-
-                if event.key == pg.K_ESCAPE:
+                if event.type == pg.QUIT:
                     self.running = False
                     return None
 
-            if event.type == pg.MOUSEBUTTONDOWN:
+                if event.type == pg.KEYDOWN:
 
-                mouse_x, mouse_y = pg.mouse.get_pos()
+                    if event.key == pg.K_ESCAPE:
+                        self.running = False
+                        return None
 
-                DEBUG = False
-                if DEBUG :
-                    print("Mouse click at {},{}".format(mouse_x, mouse_y), end=' ')
+                if event.type == pg.MOUSEBUTTONDOWN:
 
-                board_x = mouse_x // TILE_SIZE
-                board_y = mouse_y // TILE_SIZE
+                    mouse_x, mouse_y = pg.mouse.get_pos()
 
-                if DEBUG:
-                    print("i.e. board ({},{})\n".format(board_x, board_y))
+                    DEBUG = False
+                    if DEBUG :
+                        print("Mouse click at {},{}".format(mouse_x, mouse_y), end=' ')
 
-                return (board_x, board_y)
+                    board_x = mouse_x // TILE_SIZE
+                    board_y = mouse_y // TILE_SIZE
+
+                    if DEBUG:
+                        print("i.e. board ({},{})\n".format(board_x, board_y))
+
+                    return (board_x, board_y)
+
+        else:
+            self.game_over()
+            return None
 
     def update(self):
 
@@ -180,18 +186,20 @@ class Game():
             self.board.move_tile(self.command)
 
         if self.board.is_game_won():
-            print("Congratulations! You win!")
+            self.game_won = True
 
     def render(self):
 
-        self.screen.fill(GREY)
-        for row in range(TILES_PER_SIDE):
-            for col in range(TILES_PER_SIDE):
-                coord = (col, row)
-                tile = self.board.tiles[coord]
-                self.screen.blit(self.tile_sprites[tile].image, (col * TILE_SIZE, row * TILE_SIZE))
-        self.draw_grid()
-        pg.display.flip()
+        if not self.game_won:
+
+            self.screen.fill(GREY)
+            for row in range(TILES_PER_SIDE):
+                for col in range(TILES_PER_SIDE):
+                    coord = (col, row)
+                    tile = self.board.tiles[coord]
+                    self.screen.blit(self.tile_sprites[tile].image, (col * TILE_SIZE, row * TILE_SIZE))
+            self.draw_grid()
+            pg.display.flip()
 
     def draw_grid(self):
 
@@ -205,11 +213,51 @@ class Game():
         pg.quit()
         sys.exit()
 
+    def intro(self):
+
+        self.screen.fill(SILVER)
+        self.draw_text("PygameSlidePuzzle", 48, GREY, (SCREEN_SIZE // 2, SCREEN_SIZE // 4))
+        self.draw_text("Click on a tile to move it", 24, GREY, (SCREEN_SIZE // 2, SCREEN_SIZE // 2))
+        self.draw_text("Click to start playing", 24, GREY, (SCREEN_SIZE // 2, SCREEN_SIZE * 3 // 4))
+        pg.display.flip()
+
+        on_start = True
+        while on_start:
+            for event in pg.event.get():
+                if event.type == pg.MOUSEBUTTONDOWN:
+                    on_start = False
+
+    def game_over(self):
+
+        self.screen.fill(SILVER)
+        self.draw_text("Congratulations!", 48, GREY, (SCREEN_SIZE // 2, SCREEN_SIZE // 2))
+        self.draw_text("Press Escape to quit, Space to play again", 24, GREY, (SCREEN_SIZE // 2, SCREEN_SIZE * 3 // 4))
+        pg.display.flip()
+
+        waiting = True
+        while waiting:
+            for event in pg.event.get():
+                if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
+                    self.running = False
+                    waiting = False
+
+                if event.type == pg.KEYUP and event.key == pg.K_SPACE:
+                    self.board = Board()
+                    self.game_won = False
+                    waiting = False
+
+    def draw_text(self, text, size, color, center_pos):
+        font = pg.font.Font(None, size)
+        textsurf = font.render(text, True, color)
+        rect = textsurf.get_rect(center=(center_pos))
+        self.screen.blit(textsurf, rect)
+
 
 def main():
 
     game = Game()
 
+    game.intro()
     while game.running:
 
         game.command = game.event_get()
