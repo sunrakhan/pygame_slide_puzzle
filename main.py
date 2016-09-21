@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Slide puzzle game using the Pygame library."""
 
+import os
 import sys
 import random
 import pygame as pg
 
 # constants
-TILE_SIZE = 128
-TILES_PER_SIDE = 3
-SCREEN_SIZE = TILE_SIZE * TILES_PER_SIDE
+TILES_PER_SIDE = 4
 FPS = 30
 
 SHUFFLE = 40
@@ -89,7 +88,7 @@ class Board():
             self.move_tile(move)
             moves_nb += 1
 
-        DEBUG = True
+        DEBUG = False
         if DEBUG:
             print(self.moves_list)
 
@@ -109,7 +108,15 @@ class Game():
     def __init__(self):
 
         pg.init()
-        self.screen = pg.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
+        self.image = pg.image.load(os.path.join("img", "01.png"))
+        image_rect = self.image.get_rect()
+        self.screen_width = image_rect.width
+        self.screen_height = image_rect.height
+        self.tile_width = self.screen_width // TILES_PER_SIDE
+        self.tile_height = self.screen_height // TILES_PER_SIDE
+
+        self.screen = pg.display.set_mode((self.screen_width, self.screen_height))
+        self.image.convert()
         pg.display.set_caption("PygSlidePuzzle")
         self.fps_clock = pg.time.Clock()
         self.font = pg.font.Font(None, 24)
@@ -118,23 +125,32 @@ class Game():
         self.tile_sprites = self.init_tile_sprites()
 
         self.running = True
+        self.do_render = True
         self.command = None
         self.game_won = False
 
     def init_tile_sprites(self):
 
+        DEBUG = True
+
         tile_sprites =[]
         for i in range(TILES_PER_SIDE * TILES_PER_SIDE - 1):
             tile_sprite = pg.sprite.Sprite()
-            tile_sprite.image = pg.Surface((TILE_SIZE, TILE_SIZE))
+            tile_sprite.image = pg.Surface((self.tile_width, self.tile_height))
             tile_sprite.rect = tile_sprite.image.get_rect()
-            tile_sprite.image.fill(SILVER)
-            tile_label = self.font.render(str(i), True, GREY)
-            tile_sprite.image.blit(tile_label, tile_label.get_rect(center=tile_sprite.rect.center))
+            source_rect = ((i % TILES_PER_SIDE) * self.tile_width, (i // TILES_PER_SIDE) * self.tile_height, self.tile_width, self.tile_height)
+
+            if DEBUG:
+                print("Getting tile from source at {}".format(source_rect))
+
+            tile_sprite.image.blit(self.image, (0, 0), source_rect)
             tile_sprites.append(tile_sprite)
+
+        if DEBUG:
+            print()
         # create the blank
         tile_sprite = pg.sprite.Sprite()
-        tile_sprite.image = pg.Surface((TILE_SIZE, TILE_SIZE))
+        tile_sprite.image = pg.Surface((self.tile_width, self.tile_height))
         tile_sprite.rect = tile_sprite.image.get_rect()
         tile_sprite.image.fill(GREY)
         tile_sprites.append(tile_sprite)
@@ -164,8 +180,8 @@ class Game():
                     if DEBUG :
                         print("Mouse click at {},{}".format(mouse_x, mouse_y), end=' ')
 
-                    board_x = mouse_x // TILE_SIZE
-                    board_y = mouse_y // TILE_SIZE
+                    board_x = mouse_x // self.tile_width
+                    board_y = mouse_y // self.tile_height
 
                     if DEBUG:
                         print("i.e. board ({},{})\n".format(board_x, board_y))
@@ -190,23 +206,23 @@ class Game():
 
     def render(self):
 
-        if not self.game_won:
+        if self.do_render:
 
             self.screen.fill(GREY)
             for row in range(TILES_PER_SIDE):
                 for col in range(TILES_PER_SIDE):
                     coord = (col, row)
                     tile = self.board.tiles[coord]
-                    self.screen.blit(self.tile_sprites[tile].image, (col * TILE_SIZE, row * TILE_SIZE))
+                    self.screen.blit(self.tile_sprites[tile].image, (col * self.tile_width, row * self.tile_height))
             self.draw_grid()
             pg.display.flip()
 
     def draw_grid(self):
 
-        for x in range(TILE_SIZE, SCREEN_SIZE, TILE_SIZE):
-            pg.draw.line(self.screen, GREY, (x, 0), (x, SCREEN_SIZE))
-        for y in range(TILE_SIZE, SCREEN_SIZE, TILE_SIZE):
-            pg.draw.line(self.screen, GREY, (0, y), (SCREEN_SIZE, y))
+        for x in range(self.tile_width, self.screen_width, self.tile_width):
+            pg.draw.line(self.screen, GREY, (x, 0), (x, self.screen_height))
+        for y in range(self.tile_height, self.screen_height, self.tile_height):
+            pg.draw.line(self.screen, GREY, (0, y), (self.screen_width, y))
 
     def exit(self):
 
@@ -216,32 +232,39 @@ class Game():
     def intro(self):
 
         self.screen.fill(SILVER)
-        self.draw_text("PygameSlidePuzzle", 48, GREY, (SCREEN_SIZE // 2, SCREEN_SIZE // 4))
-        self.draw_text("Click on a tile to move it", 24, GREY, (SCREEN_SIZE // 2, SCREEN_SIZE // 2))
-        self.draw_text("Click to start playing", 24, GREY, (SCREEN_SIZE // 2, SCREEN_SIZE * 3 // 4))
+        self.draw_text("PygameSlidePuzzle", 48, GREY, (self.screen_width // 2, self.screen_height // 4))
+        self.draw_text("Click on a tile to move it", 24, GREY, (self.screen_width // 2, self.screen_height // 2))
+        self.draw_text("Click to start playing", 24, GREY, (self.screen_width // 2, self.screen_height * 3 // 4))
         pg.display.flip()
 
         on_start = True
         while on_start:
             for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    self.running = False
+                    on_start = False
                 if event.type == pg.MOUSEBUTTONDOWN:
                     on_start = False
 
     def game_over(self):
 
-        self.screen.fill(SILVER)
-        self.draw_text("Congratulations!", 48, GREY, (SCREEN_SIZE // 2, SCREEN_SIZE // 2))
-        self.draw_text("Press Escape to quit, Space to play again", 24, GREY, (SCREEN_SIZE // 2, SCREEN_SIZE * 3 // 4))
+        overlay = pg.Surface((self.screen_width, self.screen_height))
+        overlay.fill(GREY)
+        overlay.set_alpha(200)
+        self.screen.blit(overlay, (0, 0))
+        self.draw_text("Congratulations!", 48, SILVER, (self.screen_width // 2, self.screen_height // 2))
+        self.draw_text("Click to play again", 24, SILVER, (self.screen_width // 2, self.screen_height * 3 // 4))
         pg.display.flip()
 
         waiting = True
         while waiting:
             for event in pg.event.get():
-                if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
+                if event.type == pg.QUIT:
+                    self.do_render = False
                     self.running = False
                     waiting = False
 
-                if event.type == pg.KEYUP and event.key == pg.K_SPACE:
+                if event.type == pg.MOUSEBUTTONDOWN:
                     self.board = Board()
                     self.game_won = False
                     waiting = False
